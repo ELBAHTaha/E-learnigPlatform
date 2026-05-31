@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: 27 42 74;
+  --color-primary-light: 46 67 115;
+  --color-accent: 232 149 74;
+  --color-accent-light: 242 176 119;
+  --color-surface: 248 250 252;
+  --color-text: 15 23 42;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-surface text-navy-900;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-semibold tracking-tight text-navy-900;
+  }
+  h1 {
+    @apply text-3xl sm:text-4xl;
+  }
+  h2 {
+    @apply text-2xl sm:text-3xl;
+  }
+  h3 {
+    @apply text-xl sm:text-2xl;
+  }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-white;
+  }
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-200 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-navy-300;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/40;
+  }
+}

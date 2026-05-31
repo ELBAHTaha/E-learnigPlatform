@@ -1,0 +1,10 @@
+export * as authApi from "./auth";
+export * as usersApi from "./users";
+export * as formationsApi from "./formations";
+export * as coursesApi from "./courses";
+export * as enrollmentsApi from "./enrollments";
+export * as scheduleApi from "./schedule";
+export * as roomsApi from "./rooms";
+export * as gradesApi from "./grades";
+export * as immigrationApi from "./immigration";
+export * as announcementsApi from "./announcements";
