@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreSessionRequest;
+use App\Http\Resources\ClassSessionResource;
+use App\Models\ClassSession;
+use App\Models\Enrollment;
+use App\Services\Meeting\MeetingService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
+
+class SessionController extends Controller
+{
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+        $query = ClassSession::query()->orderBy('starts_at');
+
+        // Élèves only see sessions of formations they are approved in.
+        if ($user->hasRole('eleve')) {
+            $ids = Enrollment::where('eleve_id', $user->id)->where('status', Enrollment::APPROVED)->pluck('formation_id');
+            $query->whereIn('formation_id', $ids);
+        }
+
+        if ($request->filled('eleveId')) {
+            $ids = Enrollment::where('eleve_id', $request->integer('eleveId'))->where('status', Enrollment::APPROVED)->pluck('formation_id');
+            $query->whereIn('formation_id', $ids);
+        }
+
+        $query->when($request->filled('formateurId'), fn ($q) => $q->where('formateur_id', $request->integer('formateurId')))
+            ->when($request->filled('formationId'), fn ($q) => $q->where('formation_id', $request->integer('formationId')))
+            ->when($request->filled('from'), fn ($q) => $q->where('starts_at', '>=', $request->date('from')))
+            ->when($request->filled('to'), fn ($q) => $q->where('starts_at', '<=', $request->date('to')));
+
+        return ClassSessionResource::collection($query->get());
+    }
+
+    public function store(StoreSessionRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $this->assertNoConflict(
+            $data['start'], $data['end'],
+            $data['formateurId'] ?? null, $data['roomId'] ?? null, null
+        );
+
+        $session = ClassSession::create([
+            'formation_id' => $data['formationId'],
+            'formateur_id' => $data['formateurId'] ?? null,
+            'room_id' => $data['roomId'] ?? null,
+            'title' => $data['title'],
+            'starts_at' => $data['start'],
+            'ends_at' => $data['end'],
+            'is_online' => $data['isOnline'] ?? (($data['roomId'] ?? null) === null),
+            'meeting_url' => $data['meetingUrl'] ?? null,
+            'meeting_provider' => $data['meetingProvider'] ?? (($data['meetingUrl'] ?? null) ? 'manual' : null),
+            'recurrence' => $data['recurrence'] ?? 'none',
+            'recurrence_days' => $data['recurrenceDays'] ?? null,
+            'status' => 'scheduled',
+        ]);
+
+        return (new ClassSessionResource($session))->response()->setStatusCode(201);
+    }
+
+    public function update(StoreSessionRequest $request, ClassSession $session): ClassSessionResource
+    {
+        $this->authorize('update', $session);
+        $data = $request->validated();
+        $this->assertNoConflict(
+            $data['start'], $data['end'],
+            $data['formateurId'] ?? $session->formateur_id, $data['roomId'] ?? $session->room_id, $session->id
+        );
+
+        $session->update([
+            'formation_id' => $data['formationId'],
+            'formateur_id' => $data['formateurId'] ?? null,
+            'room_id' => $data['roomId'] ?? null,
+            'title' => $data['title'],
+            'starts_at' => $data['start'],
+            'ends_at' => $data['end'],
+            'is_online' => $data['isOnline'] ?? $session->is_online,
+            'meeting_url' => $data['meetingUrl'] ?? $session->meeting_url,
+        ]);
+
+        return new ClassSessionResource($session);
+    }
+
+    public function destroy(ClassSession $session): JsonResponse
+    {
+        $this->authorize('delete', $session);
+        $session->delete();
+
+        return response()->json(null, 204);
+    }
+
+    /** POST /sessions/{session}/meeting — create a Zoom/Meet meeting for the session. */
+    public function createMeeting(Request $request, ClassSession $session, MeetingService $meetings): ClassSessionResource
+    {
+        $this->authorize('createMeeting', $session);
+
+        $meeting = $meetings->createMeeting($session);
+
+        $session->update([
+            'is_online' => true,
+            'meeting_provider' => $meeting['provider'],
+            'meeting_url' => $meeting['join_url'],
+            'meeting_id' => $meeting['id'] ?? null,
+            'meeting_host_url' => $meeting['start_url'] ?? null,
+        ]);
+
+        return new ClassSessionResource($session);
+    }
+
+    /** GET /sessions/{session}/join — returns the correct URL per role. */
+    public function join(Request $request, ClassSession $session): JsonResponse
+    {
+        $user = $request->user();
+        $isHost = $user->hasRole('admin') || $session->formateur_id === $user->id;
+
+        // Students must be enrolled & approved to obtain a join link.
+        if ($user->hasRole('eleve')) {
+            $enrolled = Enrollment::where('eleve_id', $user->id)
+                ->where('formation_id', $session->formation_id)
+                ->where('status', Enrollment::APPROVED)->exists();
+            abort_unless($enrolled, 403, 'Vous n\'êtes pas inscrit à cette formation.');
+        }
+
+        $url = $isHost ? ($session->meeting_host_url ?: $session->meeting_url) : $session->meeting_url;
+
+        if (! $url) {
+            return response()->json(['message' => 'Aucune réunion n\'est associée à cette séance.'], 404);
+        }
+
+        return response()->json(['url' => $url, 'role' => $isHost ? 'host' : 'participant']);
+    }
+
+    /**
+     * Reject overlapping sessions sharing the same room or the same trainer.
+     */
+    private function assertNoConflict(string $start, string $end, ?int $formateurId, ?int $roomId, ?int $ignoreId): void
+    {
+        $overlap = ClassSession::query()
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->where('starts_at', '<', $end)
+            ->where('ends_at', '>', $start)
+            ->where(function ($q) use ($formateurId, $roomId) {
+                $q->when($formateurId, fn ($w) => $w->orWhere('formateur_id', $formateurId));
+                $q->when($roomId, fn ($w) => $w->orWhere('room_id', $roomId));
+            })
+            ->first();
+
+        if ($overlap) {
+            $reason = $overlap->room_id === $roomId && $roomId !== null
+                ? 'La salle est déjà occupée sur ce créneau.'
+                : 'Le formateur a déjà une séance sur ce créneau.';
+            throw ValidationException::withMessages(['start' => [$reason]])->status(409);
+        }
+    }
+}
