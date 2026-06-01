@@ -61,6 +61,7 @@ export function RegisterPage() {
         lastName: values.lastName,
         email: values.email,
         password: values.password,
+        passwordConfirmation: values.confirm,
         phone: values.phone,
         city: values.city,
         interestedPole: values.interestedPole || undefined,

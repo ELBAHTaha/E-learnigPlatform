@@ -37,6 +37,7 @@ export interface RegisterInput {
   lastName: string;
   email: string;
   password: string;
+  passwordConfirmation: string;
   phone?: string;
   city?: string;
   interestedPole?: string;
@@ -63,5 +64,10 @@ export async function register(input: RegisterInput): Promise<LoginResult> {
     allUsers.push(user);
     return { user, token: `mock.${user.id}.${Date.now()}` };
   }
-  return http<LoginResult>("/auth/register", { method: "POST", json: input });
+  const { passwordConfirmation, ...rest } = input;
+  return http<LoginResult>("/auth/register", {
+    method: "POST",
+    // Laravel's `confirmed` rule requires the snake_case `password_confirmation`.
+    json: { ...rest, password_confirmation: passwordConfirmation },
+  });
 }

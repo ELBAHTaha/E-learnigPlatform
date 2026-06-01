@@ -8,6 +8,7 @@ use App\Http\Resources\ClassSessionResource;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Services\Meeting\MeetingService;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -142,10 +143,17 @@ class SessionController extends Controller
      */
     private function assertNoConflict(string $start, string $end, ?int $formateurId, ?int $roomId, ?int $ignoreId): void
     {
+        // Bind Carbon instances (not raw ISO strings) so the query builder formats
+        // them to the connection's datetime format. Comparing the stored
+        // "Y-m-d H:i:s" columns against an ISO "...T..Z" string breaks under SQLite's
+        // lexicographic comparison and would silently miss overlaps.
+        $startAt = Carbon::parse($start);
+        $endAt = Carbon::parse($end);
+
         $overlap = ClassSession::query()
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
-            ->where('starts_at', '<', $end)
-            ->where('ends_at', '>', $start)
+            ->where('starts_at', '<', $endAt)
+            ->where('ends_at', '>', $startAt)
             ->where(function ($q) use ($formateurId, $roomId) {
                 $q->when($formateurId, fn ($w) => $w->orWhere('formateur_id', $formateurId));
                 $q->when($roomId, fn ($w) => $w->orWhere('room_id', $roomId));

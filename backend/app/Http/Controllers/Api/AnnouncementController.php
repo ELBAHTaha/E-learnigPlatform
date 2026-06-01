@@ -20,9 +20,12 @@ class AnnouncementController extends Controller
         // Filter to announcements visible to the requested/viewer role.
         $role = $request->string('role')->toString() ?: $request->user()?->roles->first()?->name;
 
+        // Admins see every published announcement (they manage them all).
+        $isAdmin = $request->user()?->hasRole('admin');
+
         $announcements = Announcement::query()
             ->where('is_published', true)
-            ->when($role, function ($q) use ($role) {
+            ->when($role && ! $isAdmin, function ($q) use ($role) {
                 // visible if no targets (everyone) OR target_roles JSON contains the role
                 $q->where(function ($w) use ($role) {
                     $w->whereNull('target_roles')
