@@ -34,7 +34,7 @@ class FormationController extends Controller
                 $term = '%'.$request->string('search').'%';
                 $q->where(fn ($w) => $w->where('title', 'like', $term)->orWhere('description', 'like', $term));
             })
-            ->orderBy('title')
+            ->latest()
             ->get();
 
         return FormationResource::collection($formations);

@@ -1,6 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/cn";
+import { useAuth } from "@/store/auth";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -17,6 +19,14 @@ interface SidebarProps {
 }
 
 export function Sidebar({ items, onNavigate, compact }: SidebarProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
+
   return (
     <aside
       className={cn(
@@ -48,9 +58,16 @@ export function Sidebar({ items, onNavigate, compact }: SidebarProps) {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-white/10 px-4 py-3 text-xs text-navy-400">
-        <p>AFG Academy</p>
-        <p className="text-navy-500">v0.1.0 · démo</p>
+      <div className="border-t border-white/10 px-3 py-3 space-y-1">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-navy-300 hover:bg-white/5 hover:text-white transition-colors"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Déconnexion</span>
+        </button>
+        <p className="px-3 text-[10px] text-navy-500">AFG Academy · v0.1.0</p>
       </div>
     </aside>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import { Logo } from "./Logo";
@@ -15,7 +15,13 @@ const links = [
 
 export function MarketingHeader() {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/connexion");
+  }
   return (
     <header className="sticky top-0 z-40 border-b border-navy-100 bg-white/85 backdrop-blur-md">
       <div className="container-page flex h-16 items-center justify-between gap-4">
@@ -41,16 +47,19 @@ export function MarketingHeader() {
         </nav>
         <div className="hidden md:flex items-center gap-2">
           {user ? (
-            <Link to={`/${user.role === "eleve" ? "eleve" : user.role}`}>
-              <Button size="sm">Mon espace</Button>
-            </Link>
+            <>
+              <Link to={`/${user.role === "eleve" ? "eleve" : user.role}`}>
+                <Button variant="ghost" size="sm">Mon espace</Button>
+              </Link>
+              <Button size="sm" variant="outline" onClick={handleLogout}>Déconnexion</Button>
+            </>
           ) : (
             <>
               <Link to="/connexion">
                 <Button variant="ghost" size="sm">Connexion</Button>
               </Link>
               <Link to="/inscription">
-                <Button variant="secondary" size="sm">S'inscrire</Button>
+                <Button size="sm">S'inscrire</Button>
               </Link>
             </>
           )}
@@ -87,16 +96,19 @@ export function MarketingHeader() {
             ))}
             <div className="mt-2 grid grid-cols-2 gap-2">
               {user ? (
-                <Link to={`/${user.role === "eleve" ? "eleve" : user.role}`} className="col-span-2">
-                  <Button fullWidth>Mon espace</Button>
-                </Link>
+                <>
+                  <Link to={`/${user.role === "eleve" ? "eleve" : user.role}`}>
+                    <Button variant="ghost" fullWidth>Mon espace</Button>
+                  </Link>
+                  <Button variant="outline" fullWidth onClick={handleLogout}>Déconnexion</Button>
+                </>
               ) : (
                 <>
                   <Link to="/connexion">
-                    <Button variant="outline" fullWidth>Connexion</Button>
+                    <Button variant="ghost" fullWidth>Connexion</Button>
                   </Link>
                   <Link to="/inscription">
-                    <Button variant="secondary" fullWidth>S'inscrire</Button>
+                    <Button fullWidth>S'inscrire</Button>
                   </Link>
                 </>
               )}

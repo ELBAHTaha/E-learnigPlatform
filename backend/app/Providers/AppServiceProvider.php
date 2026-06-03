@@ -2,10 +2,7 @@
 
 namespace App\Providers;
 
-use App\Services\Meeting\GoogleMeetService;
-use App\Services\Meeting\ManualMeetingService;
-use App\Services\Meeting\MeetingService;
-use App\Services\Meeting\ZoomMeetingService;
+use App\Services\Meeting\JitsiMeetingService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,14 +14,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind the meeting provider selected by config (zoom | google_meet | manual).
-        $this->app->bind(MeetingService::class, function ($app) {
-            return match (config('services.meeting.default')) {
-                'zoom' => $app->make(ZoomMeetingService::class),
-                'google_meet' => $app->make(GoogleMeetService::class),
-                default => $app->make(ManualMeetingService::class),
-            };
-        });
+        // Visioconférence is Jitsi Meet — no provider switch, no credentials.
+        $this->app->singleton(JitsiMeetingService::class);
     }
 
     public function boot(): void

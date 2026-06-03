@@ -9,21 +9,14 @@ interface LogoProps {
 }
 
 export function Logo({ variant = "dark", size = "md", className, asLink = true }: LogoProps) {
-  const sizes = { sm: "h-8", md: "h-10", lg: "h-12" };
+  const imgSizes = { sm: "h-8 w-8", md: "h-10 w-10", lg: "h-12 w-12" };
   const inner = (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <span
-        className={cn(
-          "inline-flex items-center justify-center rounded-lg font-display font-bold",
-          sizes[size],
-          "aspect-square",
-          variant === "dark"
-            ? "bg-primary text-accent"
-            : "bg-white text-primary"
-        )}
-      >
-        AFG
-      </span>
+      <img
+        src="/afgLogo.jpeg"
+        alt="AFG Académie"
+        className={cn("rounded-lg object-cover shrink-0", imgSizes[size])}
+      />
       <span className="flex flex-col leading-tight">
         <span
           className={cn(

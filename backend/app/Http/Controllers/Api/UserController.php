@@ -28,7 +28,7 @@ class UserController extends Controller
                     ->orWhere('last_name', 'like', $term)
                     ->orWhere('email', 'like', $term));
             })
-            ->orderBy('first_name')
+            ->latest()
             ->get();
 
         return UserResource::collection($users);

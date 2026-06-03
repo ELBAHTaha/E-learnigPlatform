@@ -14,8 +14,8 @@ class ClassSession extends Model
 
     protected $fillable = [
         'formation_id', 'formateur_id', 'room_id', 'title', 'starts_at', 'ends_at',
-        'recurrence', 'recurrence_days', 'is_online', 'meeting_provider',
-        'meeting_url', 'meeting_id', 'meeting_host_url', 'status',
+        'recurrence', 'recurrence_days', 'is_online',
+        'meeting_url', 'meeting_id', 'status',
     ];
 
     protected function casts(): array

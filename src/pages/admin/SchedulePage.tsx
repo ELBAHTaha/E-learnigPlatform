@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, Video } from "lucide-react";
 import {
   Badge,
   Button,
@@ -120,6 +120,15 @@ export function SchedulePage() {
     },
   });
 
+  const genMeeting = useMutation({
+    mutationFn: (id: string) => scheduleApi.createMeeting(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Salle Jitsi créée");
+    },
+    onError: () => toast.error("Impossible de créer la salle"),
+  });
+
   const columns: Column<ScheduleSession>[] = [
     {
       key: "title",
@@ -160,16 +169,29 @@ export function SchedulePage() {
       key: "actions",
       header: "",
       cell: (s) => (
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Supprimer cette session ?")) remove.mutate(s.id);
-          }}
-          className="text-danger hover:bg-red-50 rounded-md p-1.5"
-          aria-label="Supprimer"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {!s.meetingUrl && (
+            <button
+              type="button"
+              onClick={() => genMeeting.mutate(s.id)}
+              className="text-info hover:bg-blue-50 rounded-md p-1.5"
+              aria-label="Créer salle Jitsi"
+              title="Créer salle Jitsi"
+            >
+              <Video className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Supprimer cette session ?")) remove.mutate(s.id);
+            }}
+            className="text-danger hover:bg-red-50 rounded-md p-1.5"
+            aria-label="Supprimer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       ),
     },
   ];

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Video } from "lucide-react";
-import { Badge, Button, Card, CardBody, Modal, Skeleton } from "@/components/ui";
+import { Badge, Button, Card, CardBody, Modal, Skeleton, toast } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WeeklyCalendar } from "@/features/schedule/WeeklyCalendar";
 import { roomsApi, scheduleApi, formationsApi } from "@/api";
@@ -22,6 +22,17 @@ export function FormateurEmploiPage() {
   });
 
   const [selected, setSelected] = useState<ScheduleSession | null>(null);
+  const qc = useQueryClient();
+
+  const genMeeting = useMutation({
+    mutationFn: (id: string) => scheduleApi.createMeeting(id),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      setSelected(updated);
+      toast.success("Salle Jitsi créée");
+    },
+    onError: () => toast.error("Impossible de créer la salle"),
+  });
 
   return (
     <div>
@@ -51,15 +62,22 @@ export function FormateurEmploiPage() {
         footer={
           selected?.meetingUrl ? (
             <a href={selected.meetingUrl} target="_blank" rel="noreferrer">
-              <Button
-                variant="secondary"
-                rightIcon={<ExternalLink className="h-4 w-4" />}
-              >
+              <Button variant="secondary" rightIcon={<ExternalLink className="h-4 w-4" />}>
                 Lancer la visioconférence
               </Button>
             </a>
           ) : (
-            <Button variant="ghost" onClick={() => setSelected(null)}>Fermer</Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setSelected(null)}>Fermer</Button>
+              <Button
+                variant="secondary"
+                leftIcon={<Video className="h-4 w-4" />}
+                loading={genMeeting.isPending}
+                onClick={() => selected && genMeeting.mutate(selected.id)}
+              >
+                Créer la visioconférence
+              </Button>
+            </div>
           )
         }
       >

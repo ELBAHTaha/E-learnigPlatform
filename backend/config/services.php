@@ -35,21 +35,9 @@ return [
         ],
     ],
 
-    // --- AFG visioconférence ---
-    'meeting' => [
-        'default' => env('MEETING_DEFAULT_PROVIDER', 'manual'), // zoom | google_meet | manual
-        'manual_base_url' => env('MEETING_MANUAL_BASE_URL', 'https://meet.afg-academie.com'),
-    ],
-
-    'zoom' => [
-        'account_id' => env('ZOOM_ACCOUNT_ID'),
-        'client_id' => env('ZOOM_CLIENT_ID'),
-        'client_secret' => env('ZOOM_CLIENT_SECRET'),
-    ],
-
-    'google' => [
-        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
-        'service_account_json' => env('GOOGLE_SERVICE_ACCOUNT_JSON'),
+    // --- AFG visioconférence (Jitsi Meet) ---
+    'jitsi' => [
+        'server' => env('JITSI_SERVER', 'https://meet.jit.si'),
     ],
 
     'afg' => [

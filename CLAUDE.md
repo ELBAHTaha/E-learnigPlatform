@@ -116,6 +116,8 @@ The frontend has no JS test runner; type-check + build is the gate.
 - Corrigés and immigration documents live on the **private** disk and are only reachable
   through gated controller routes (`/materials/{id}/download`, `/documents/{id}/download`),
   never a public URL.
-- Meeting links: `MEETING_DEFAULT_PROVIDER=manual` by default (no credentials needed);
-  `zoom` / `google_meet` fall back to a manual link if creds/API fail.
+- Meeting links: **Jitsi Meet** (`JitsiMeetingService`). `POST /sessions/{id}/meeting`
+  builds a room URL on `JITSI_SERVER` (default `https://meet.jit.si`) — no credentials,
+  no queue, idempotent. `GET /sessions/{id}/join` returns the same URL for everyone
+  (no host/guest split); élèves must be enrolled+approved.
 - If you edit `backend/.env`, run `php artisan config:clear`.

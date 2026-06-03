@@ -7,7 +7,7 @@ use App\Http\Requests\StoreSessionRequest;
 use App\Http\Resources\ClassSessionResource;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
-use App\Services\Meeting\MeetingService;
+use App\Services\Meeting\JitsiMeetingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,7 +57,6 @@ class SessionController extends Controller
             'ends_at' => $data['end'],
             'is_online' => $data['isOnline'] ?? (($data['roomId'] ?? null) === null),
             'meeting_url' => $data['meetingUrl'] ?? null,
-            'meeting_provider' => $data['meetingProvider'] ?? (($data['meetingUrl'] ?? null) ? 'manual' : null),
             'recurrence' => $data['recurrence'] ?? 'none',
             'recurrence_days' => $data['recurrenceDays'] ?? null,
             'status' => 'scheduled',
@@ -97,29 +96,22 @@ class SessionController extends Controller
         return response()->json(null, 204);
     }
 
-    /** POST /sessions/{session}/meeting — create a Zoom/Meet meeting for the session. */
-    public function createMeeting(Request $request, ClassSession $session, MeetingService $meetings): ClassSessionResource
+    /** POST /sessions/{session}/meeting — create (or return) the Jitsi room for the session. */
+    public function createMeeting(Request $request, ClassSession $session, JitsiMeetingService $jitsi): ClassSessionResource
     {
         $this->authorize('createMeeting', $session);
 
-        $meeting = $meetings->createMeeting($session);
-
-        $session->update([
-            'is_online' => true,
-            'meeting_provider' => $meeting['provider'],
-            'meeting_url' => $meeting['join_url'],
-            'meeting_id' => $meeting['id'] ?? null,
-            'meeting_host_url' => $meeting['start_url'] ?? null,
-        ]);
+        // Synchronous — Jitsi rooms need no external API call or queue. Idempotent:
+        // calling twice returns the same room URL.
+        $session = $jitsi->createMeeting($session);
 
         return new ClassSessionResource($session);
     }
 
-    /** GET /sessions/{session}/join — returns the correct URL per role. */
-    public function join(Request $request, ClassSession $session): JsonResponse
+    /** GET /sessions/{session}/join — every participant shares the same Jitsi URL. */
+    public function join(Request $request, ClassSession $session, JitsiMeetingService $jitsi): JsonResponse
     {
         $user = $request->user();
-        $isHost = $user->hasRole('admin') || $session->formateur_id === $user->id;
 
         // Students must be enrolled & approved to obtain a join link.
         if ($user->hasRole('eleve')) {
@@ -129,13 +121,13 @@ class SessionController extends Controller
             abort_unless($enrolled, 403, 'Vous n\'êtes pas inscrit à cette formation.');
         }
 
-        $url = $isHost ? ($session->meeting_host_url ?: $session->meeting_url) : $session->meeting_url;
+        $url = $jitsi->getJoinUrl($session);
 
         if (! $url) {
             return response()->json(['message' => 'Aucune réunion n\'est associée à cette séance.'], 404);
         }
 
-        return response()->json(['url' => $url, 'role' => $isHost ? 'host' : 'participant']);
+        return response()->json(['meeting_url' => $url, 'room' => $session->meeting_id]);
     }
 
     /**

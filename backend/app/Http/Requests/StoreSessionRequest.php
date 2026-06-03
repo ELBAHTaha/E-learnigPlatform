@@ -23,7 +23,6 @@ class StoreSessionRequest extends FormRequest
             'end' => ['required', 'date', 'after:start'],
             'isOnline' => ['sometimes', 'boolean'],
             'meetingUrl' => ['nullable', 'url', 'max:500'],
-            'meetingProvider' => ['nullable', 'in:zoom,google_meet,manual'],
             'recurrence' => ['nullable', 'in:none,weekly'],
             'recurrenceDays' => ['nullable', 'array'],
         ];

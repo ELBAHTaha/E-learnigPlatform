@@ -45,6 +45,19 @@ export async function createSession(input: Omit<ScheduleSession, "id">): Promise
   return http<ScheduleSession>("/sessions", { method: "POST", json: input });
 }
 
+export async function createMeeting(sessionId: string): Promise<ScheduleSession> {
+  if (useMocks) {
+    await delay();
+    const s = mockSessions.find((x) => x.id === sessionId);
+    if (s) {
+      s.meetingUrl = `https://meet.jit.si/afg-demo-${sessionId}`;
+      s.meetingId = `afg-demo-${sessionId}`;
+    }
+    return s!;
+  }
+  return http<ScheduleSession>(`/sessions/${sessionId}/meeting`, { method: "POST" });
+}
+
 export async function deleteSession(id: string): Promise<void> {
   if (useMocks) {
     await delay();

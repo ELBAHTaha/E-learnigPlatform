@@ -96,6 +96,7 @@ export interface ScheduleSession {
   end: string;
   title: string;
   meetingUrl?: string;
+  meetingId?: string;
 }
 
 export interface Grade {

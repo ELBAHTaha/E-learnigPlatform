@@ -164,20 +164,22 @@ filename is kept in the database.
 
 ---
 
-## Visioconférence (Zoom / Google Meet)
+## Visioconférence (Jitsi Meet)
 
-`MeetingService` has three drivers selected by `MEETING_DEFAULT_PROVIDER`:
+`JitsiMeetingService` builds a room URL deterministically — **no API
+credentials, no OAuth, no queue**. The Jitsi server is configurable via
+`JITSI_SERVER` (defaults to the public `https://meet.jit.si`; point it at a
+self-hosted instance for production).
 
-- **`manual`** (default) — generates a placeholder link; works with **no
-  credentials**, so the app is fully functional in development.
-- **`zoom`** — Server-to-Server OAuth (`ZOOM_ACCOUNT_ID/CLIENT_ID/CLIENT_SECRET`).
-- **`google_meet`** — Google Calendar event with conferenceData
-  (`GOOGLE_SERVICE_ACCOUNT_JSON` path).
+`POST /api/sessions/{id}/meeting` creates (or returns) the room and stores
+`meeting_url` (full room URL) and `meeting_id` (room name, e.g.
+`afg-maths-spe-suites-12`). The call is **synchronous and idempotent** —
+calling it twice returns the same URL.
 
-`POST /api/sessions/{id}/meeting` creates the meeting and stores `meeting_url`
-(join, shared with students) and `meeting_host_url` (start, visible only to the
-trainer/admin). Both real providers gracefully fall back to a manual link if
-credentials are missing or the API call fails.
+`GET /api/sessions/{id}/join` returns that same `meeting_url` to everyone:
+Jitsi has no host/guest distinction. Students must still be enrolled and
+approved to obtain the link. The React SPA either opens the URL in a new tab
+or embeds it inline via the Jitsi Meet IFrame API (`external_api.js`).
 
 ---
 

@@ -257,13 +257,21 @@ class DemoDataSeeder extends Seeder
             ['f-ss-maths-terminale', 'u-form-1', 'r-1', 4, [10, 0], [12, 0], 'Maths Spé — Probabilités', null],
         ];
 
-        foreach ($sessions as [$fSlug, $formateur, $room, $day, $startHM, $endHM, $title, $meetUrl]) {
+        $jitsiServer = rtrim((string) config('services.jitsi.server', 'https://meet.jit.si'), '/');
+
+        foreach ($sessions as [$fSlug, $formateur, $room, $day, $startHM, $endHM, $title, $hasMeeting]) {
             $formation = $this->formations[$fSlug] ?? null;
             if (! $formation) {
                 continue;
             }
             $roomModel = $this->rooms[$room] ?? null;
             $isOnline = $room === 'r-virt';
+
+            // Build a Jitsi room for online/virtual sessions (deterministic slug).
+            $roomName = $hasMeeting
+                ? 'afg-'.\Illuminate\Support\Str::slug($title)
+                : null;
+
             ClassSession::updateOrCreate(
                 ['formation_id' => $formation->id, 'title' => $title],
                 [
@@ -272,8 +280,8 @@ class DemoDataSeeder extends Seeder
                     'starts_at' => $this->dayAt($day, $startHM[0], $startHM[1]),
                     'ends_at' => $this->dayAt($day, $endHM[0], $endHM[1]),
                     'is_online' => $isOnline,
-                    'meeting_provider' => $meetUrl ? 'manual' : null,
-                    'meeting_url' => $meetUrl,
+                    'meeting_id' => $roomName,
+                    'meeting_url' => $roomName ? "{$jitsiServer}/{$roomName}" : null,
                     'status' => 'scheduled',
                 ],
             );
